@@ -1,0 +1,5 @@
+{
+  "operation": "setAssetBundle",
+  "assetPath": "Assets/Mods/Example/Materials/example.mat",
+  "assetBundleName": "chara/example/materials/example.unity3d"
+}
