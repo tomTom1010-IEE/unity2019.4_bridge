@@ -60,6 +60,8 @@ public static class CodexBridge
 
     private static void ProcessCommandsOnTick()
     {
+        if (EditorApplication.isCompiling || EditorApplication.isUpdating)
+            return;
         if (EditorApplication.timeSinceStartup < _nextProcessTime)
             return;
 
@@ -69,7 +71,7 @@ public static class CodexBridge
 
     private static void ProcessCommands()
     {
-        if (_isProcessing)
+        if (_isProcessing || EditorApplication.isCompiling || EditorApplication.isUpdating)
             return;
 
         _isProcessing = true;
@@ -82,7 +84,11 @@ public static class CodexBridge
             Array.Sort(files, StringComparer.OrdinalIgnoreCase);
 
             foreach (string file in files)
+            {
+                if (EditorApplication.isCompiling || EditorApplication.isUpdating)
+                    break;
                 ProcessCommandFile(file);
+            }
         }
         finally
         {
@@ -139,6 +145,7 @@ public static class CodexBridge
                     message = "Prefab created or updated: " + command.assetPath;
                     break;
 
+#if CODEX_BRIDGE_TOM_PROBE
                 case "createreflectionprobeprefab":
                     CreateReflectionProbePrefab(command);
                     message = "Reflection probe prefab created or updated: " + command.assetPath;
@@ -156,10 +163,21 @@ public static class CodexBridge
                 case "validateprobeprefab":
                     message = InspectProbePrefab(command, true);
                     break;
+#else
+                case "createreflectionprobeprefab":
+                case "createshprobevolumeprefab":
+                case "inspectprobeprefab":
+                case "validateprobeprefab":
+                    throw new Exception("Probe commands require TomProbeRuntime, Studio.ItemComponent and the CODEX_BRIDGE_TOM_PROBE scripting define.");
+#endif
 
                 case "configurefaceweightaccessory":
+#if CODEX_BRIDGE_FACE_WEIGHT
                     message = ConfigureFaceWeightAccessory(command);
                     break;
+#else
+                    throw new Exception("Face-weight configuration requires the FaceWeightBinder authoring dependencies and the CODEX_BRIDGE_FACE_WEIGHT scripting define.");
+#endif
 
                 case "inspectfaceweightprefab":
                     message = InspectFaceWeightPrefab(command);
@@ -346,6 +364,7 @@ public static class CodexBridge
         return go;
     }
 
+#if CODEX_BRIDGE_TOM_PROBE
     private static void CreateReflectionProbePrefab(Command command)
     {
         string path = NormalizeAssetPath(command.assetPath, "assetPath");
@@ -565,6 +584,8 @@ public static class CodexBridge
         EditorUtility.SetDirty(item);
     }
 
+#endif
+
     private static void SavePrefabAsset(GameObject root, string path)
     {
         GameObject prefab = PrefabUtility.SaveAsPrefabAsset(root, path);
@@ -639,6 +660,7 @@ public static class CodexBridge
         return property == null ? 0 : property.intValue;
     }
 
+#if CODEX_BRIDGE_FACE_WEIGHT
     private static string ConfigureFaceWeightAccessory(Command command)
     {
         string path = NormalizeAssetPath(command.assetPath, "assetPath");
@@ -746,6 +768,8 @@ public static class CodexBridge
             PrefabUtility.UnloadPrefabContents(root);
         }
     }
+
+#endif
 
     private static string InspectFaceWeightPrefab(Command command)
     {
